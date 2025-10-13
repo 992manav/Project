@@ -154,8 +154,7 @@ mlruns/
 whatsapp_profile/
 # Local DB/cache produced by PyWhatKit
 PyWhatKit_DB.txt
-# YOLO/Computer-vision best weights (already covered by *.pt, but keep explicit)
-best.pt
+
 
 # =========================
 # Misc
