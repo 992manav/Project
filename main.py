@@ -3,10 +3,11 @@ from camera_utils import initialize_camera, show_frame
 from alert_system import AlertSystem
 import cv2
 import time
+from beep import play_beep
 
 def main():
     print("\n" + "="*60)
-    print("STARTING POTHOLE DETECTION SYSTEM WITH LOCATION ALERTS")
+    print("STARTING MULTI-OBJECT DETECTION SYSTEM WITH LOCATION ALERTS")
     print("="*60)
 
     # Initialize YOLO detector
@@ -22,14 +23,14 @@ def main():
     location_alerts_sent = 0
     prev_time = time.time()
 
-    window_name = '🔴 LIVE POTHOLE DETECTION - Press Q to Quit'
+    window_name = '🔴 LIVE OBJECT DETECTION - Press Q to Quit'
 
     print("\n" + "="*60)
     print("CAMERA FEED WINDOW OPENED")
     print("="*60)
     print("📹 Live camera feed running...")
-    print("⚠️ Detecting potholes in real-time...")
-    print("📍 Location will be sent when NEW pothole detected")
+    print("⚠️ Detecting objects in real-time...")
+    print("📍 Location will be sent when NEW object detected")
     print("❌ Press 'Q' to quit")
     print("="*60 + "\n")
 
@@ -47,20 +48,26 @@ def main():
 
             # Run detection
             results = detector.detect(frame)
-            annotated_frame, pothole_detected, high_confidence, confidence = detector.annotate(frame, results)
+            annotated_frame, detected_objects = detector.annotate(frame, results)
 
             # Check and trigger alert
-            # Check and trigger alert
-            if alert_system.should_alert(pothole_detected, high_confidence):
-                print(f"\n{'='*60}")
-                print(f"🚨 NEW POTHOLE CONFIRMED! | Confidence: {confidence*100:.1f}%")
-                print(f"{'='*60}")
-                alert_system.send_alert_async()  # ✅ runs in background
+            should_send_alert, alert_type = alert_system.should_alert(detected_objects)
+            if should_send_alert:
+                if alert_type == 'SPEED_BREAKER':
+                    print(f"\n{'='*60}")
+                    print(f"🚨 NEW {alert_type} CONFIRMED! Playing beep sound.")
+                    print(f"{'='*60}")
+                    play_beep()
+                else:
+                    print(f"\n{'='*60}")
+                    print(f"🚨 NEW {alert_type} CONFIRMED!")
+                    print(f"{'='*60}")
+                    alert_system.send_alert_async(alert_type)  # ✅ runs in background
                 location_alerts_sent += 1         # increment immediately when triggered
 
 
             # Display live frame
-            show_frame(window_name, annotated_frame, fps, frame_count, location_alerts_sent, alert_system, pothole_detected)
+            show_frame(window_name, annotated_frame, fps, frame_count, location_alerts_sent, alert_system, detected_objects)
 
             # Quit with Q
             key = cv2.waitKey(1) & 0xFF
@@ -76,7 +83,7 @@ def main():
         print("SUMMARY")
         print("="*60)
         print(f"📊 Total frames processed: {frame_count}")
-        print(f"🚨 Total potholes detected: {detector.detection_count}")
+        print(f"🚨 Total objects detected: {detector.detection_count}")
         print(f"📍 Location alerts sent: {location_alerts_sent}")
         print(f"✓ Camera closed successfully")
         print("="*60 + "\n")

@@ -1,13 +1,18 @@
-# Pothole Detection and Alert System
+# Multi-Object Detection and Alert System
 
-This project implements a real-time pothole detection system using YOLOv8 and provides automated location-based alerts via WhatsApp. The system is designed to run on Windows, leveraging its native GPS capabilities for accurate location tracking.
+This project implements a real-time multi-object detection system using YOLOv8 and provides automated location-based alerts via WhatsApp. The system is designed to run on Windows, leveraging its native GPS capabilities for accurate location tracking.
 
 ## Features
 
-- **Real-time Pothole Detection:** Utilizes a pre-trained YOLOv8 model (`best.pt`) to identify potholes in a live camera feed.
-- **Visual Feedback:** Displays an annotated camera feed with bounding boxes around detected potholes and real-time status.
-- **Intelligent Alert System:** Triggers alerts only after a configurable number of consecutive high-confidence detections and after a cooldown period.
-- **Automated WhatsApp Alerts:** Sends detailed messages including exact coordinates and a Google Maps link to predefined contacts.
+- **Real-time Multi-Object Detection:** Utilizes a pre-trained YOLOv8 model (`best.pt`) to identify various objects in a live camera feed, including:
+  - `accident_detection_Accident`
+  - `speed_breaker_0`
+  - `fallen_trees_0`
+  - `water_logging_water`
+  - `potholes_pothole`
+- **Visual Feedback:** Displays an annotated camera feed with bounding boxes around detected objects and real-time status.
+- **Intelligent Alert System:** Triggers alerts only after a configurable number of consecutive high-confidence detections and after a cooldown period. The alert message dynamically reflects the type of object detected.
+- **Automated WhatsApp Alerts:** Sends detailed messages including the detected object type, exact coordinates, and a Google Maps link to predefined contacts.
 - **Windows Native GPS:** Leverages `winsdk` for precise location acquisition without external GPS hardware (requires Windows Location Services enabled).
 - **Background Alert Sending:** Alerts are sent in a separate thread to avoid interrupting the main detection loop.
 - **Audible Alerts:** Includes a simple beep sound for immediate notification (Windows-specific).
@@ -17,11 +22,11 @@ This project implements a real-time pothole detection system using YOLOv8 and pr
 The project is organized into several Python modules, each responsible for a specific part of the system:
 
 - `main.py`: The main entry point of the application, orchestrating camera initialization, detection, and alert management.
-- `detection.py`: Handles the YOLO model loading, pothole detection, and annotation of frames.
-- `camera_utils.py`: Manages camera initialization and displays the live feed with overlay information (FPS, frame count, alert status).
-- `alert_system.py`: Implements the logic for triggering alerts, including cooldowns and detection thresholds, and manages the asynchronous sending of location alerts.
+- `detection.py`: Handles the YOLO model loading, multi-object detection, and annotation of frames.
+- `camera_utils.py`: Manages camera initialization and displays the live feed with overlay information (FPS, frame count, alert status, detected object names).
+- `alert_system.py`: Implements the logic for triggering alerts, including cooldowns and detection thresholds, and manages the asynchronous sending of location alerts, passing the detected object type.
 - `location.py`: Provides functionality to acquire precise GPS coordinates using the Windows Geolocation API.
-- `send_location.py`: Integrates with `location.py` and `pywhatkit` to format and send WhatsApp messages with the detected pothole's location.
+- `send_location.py`: Integrates with `location.py` and `pywhatkit` to format and send WhatsApp messages with the detected object's location and type.
 - `beep.py`: A simple script to play an audible beep sound (Windows-specific).
 - `requirements.txt`: Lists the core Python dependencies for the project.
 - `new_requirements.txt`: A more detailed list of dependencies with specific versions, likely used for environment setup.
@@ -32,7 +37,7 @@ The project is organized into several Python modules, each responsible for a spe
 
 This is the central script that brings all components together.
 
-- **Imports:** `PotholeDetector` from `detection.py`, `initialize_camera`, `show_frame` from `camera_utils.py`, `AlertSystem` from `alert_system.py`, `cv2` for OpenCV operations, and `time` for timing.
+- **Imports:** `PotholeDetector` (now a multi-object detector) from `detection.py`, `initialize_camera`, `show_frame` from `camera_utils.py`, `AlertSystem` from `alert_system.py`, `cv2` for OpenCV operations, and `time` for timing.
 - **`main()` function:**
   - Initializes the `PotholeDetector` with the `best.pt` YOLO model.
   - Initializes the camera using `initialize_camera()`.
@@ -40,18 +45,18 @@ This is the central script that brings all components together.
   - Enters a continuous loop to:
     - Read frames from the camera.
     - Calculate and display FPS.
-    - Perform pothole detection using `detector.detect()`.
-    - Annotate the frame with detection results using `detector.annotate()`.
-    - Check if an alert should be sent using `alert_system.should_alert()` and triggers `alert_system.send_alert_async()` if conditions are met.
-    - Displays the annotated frame using `show_frame()`.
+    - Perform multi-object detection using `detector.detect()`.
+    - Annotate the frame with detection results using `detector.annotate()`, which now returns a list of `detected_objects`.
+    - Checks if an alert should be sent using `alert_system.should_alert(detected_objects)` and triggers `alert_system.send_alert_async(alert_type)` if conditions are met, passing the specific `alert_type`.
+    - Displays the annotated frame using `show_frame()`, now accepting `detected_objects` for dynamic status display.
     - Allows quitting the application by pressing 'Q'.
   - Includes error handling for `KeyboardInterrupt` and ensures camera release and window destruction in a `finally` block.
-  - Prints a summary of frames processed, potholes detected, and alerts sent upon exit.
+  - Prints a summary of frames processed, total objects detected, and alerts sent upon exit.
 - **Execution:** Runs the `main()` function when the script is executed directly.
 
 ### `detection.py`
 
-This module encapsulates the pothole detection logic using YOLO.
+This module encapsulates the multi-object detection logic using YOLO.
 
 - **Imports:** `YOLO` from `ultralytics` and `numpy`.
 - **`PotholeDetector` class:**
@@ -69,12 +74,10 @@ This module encapsulates the pothole detection logic using YOLO.
     - Takes the original `frame` and `results` from `detect()`.
     - Uses `results[0].plot()` to draw bounding boxes and labels on the frame.
     - Iterates through detected objects:
-      - Checks if the detected class is 'pothole'.
-      - Updates `pothole_detected` flag.
-      - Increments `self.detection_count`.
-      - Determines `high_confidence` if confidence is above 0.65.
-      - Prints detection confidence.
-    - Returns the `annotated_frame`, `pothole_detected` status, `high_confidence` status, and `max_confidence` found.
+      - Increments `self.detection_count` for any detection.
+      - Appends detected object's `class_name` and `confidence` to a list.
+      - Prints the detected object type and confidence.
+    - Returns the `annotated_frame` and a list of `detected_objects`.
 
 ### `camera_utils.py`
 
@@ -87,41 +90,41 @@ This module handles camera access and frame display.
   - Sets frame width and height to 640x480.
   - Exits the program if no camera can be opened.
   - Returns the `cv2.VideoCapture` object.
-- **`show_frame(window_name, frame, fps, frame_count, alerts, alert_system, pothole_detected)` function:**
+- **`show_frame(window_name, frame, fps, frame_count, alerts, alert_system, detected_objects)` function:**
   - Draws a black rectangle at the top-left for information display.
   - Displays current FPS, frame count, and number of alerts sent.
   - Shows cooldown timer if an alert was recently sent.
-  - Changes border color and displays "POTHOLE DETECTED!" text if a pothole is currently detected.
+  - Dynamically displays the names of detected objects (e.g., "ACCIDENT, POTHOLE DETECTED!") and changes border color if any objects are detected.
   - Displays "Status: Scanning..." otherwise.
   - Shows the `frame` in a window named `window_name`.
 
 ### `alert_system.py`
 
-Manages the logic for when to trigger a location alert.
+Manages the logic for when to trigger a location alert for various detected objects.
 
 - **Imports:** `subprocess`, `time`, and `threading`.
 - **`AlertSystem` class:**
   - **`__init__(self, cooldown=5, detection_threshold=3, timeout=90)`:**
     - `cooldown`: Minimum time (seconds) between sending alerts.
     - `detection_threshold`: Number of consecutive high-confidence detections required to trigger an alert.
-    - `timeout`: Maximum time for the `send_location.py` script to run.
+    - `timeout`: Maximum time for the `send_location.py` script to finish.
     - Initializes `last_alert_time`, `consecutive_detections`, and `sending_in_progress` flags.
-  - **`should_alert(self, pothole_detected, high_confidence)`:**
-    - Increments `consecutive_detections` if a high-confidence pothole is detected.
-    - Resets `consecutive_detections` otherwise.
-    - Returns `True` if `detection_threshold` is met, `cooldown` has passed, and no alert is currently being sent.
-  - **`_run_send_script(self)`:**
+  - **`should_alert(self, detected_objects, confidence_threshold=0.65)`:**
+    - Checks for any high-confidence detection among `detected_objects`.
+    - Increments `consecutive_detections` if a high-confidence object is detected; resets otherwise.
+    - Returns `(True, alert_type)` if `detection_threshold` is met, `cooldown` has passed, and no alert is currently being sent, where `alert_type` is derived from the detected class name. Returns `(False, None)` otherwise.
+  - **`_run_send_script(self, alert_type="DETECTION")`:**
     - An internal method run in a separate thread.
     - Sets `sending_in_progress` to `True`.
-    - Executes `send_location.py` as a subprocess.
+    - Executes `send_location.py` as a subprocess, passing the `alert_type` as a command-line argument.
     - Captures output and errors, handling timeouts.
     - Updates `last_alert_time` and resets `consecutive_detections` on successful send.
     - Sets `sending_in_progress` to `False` in a `finally` block.
-  - **`send_alert_async(self)`:**
-    - Creates and starts a new `threading.Thread` to run `_run_send_script` in the background.
+  - **`send_alert_async(self, alert_type="DETECTION")`:**
+    - Creates and starts a new `threading.Thread` to run `_run_send_script` in the background, passing the `alert_type`.
     - Ensures the main detection loop continues uninterrupted.
 - **`main()` function (for testing):**
-  - Provides a standalone example of how to use the `AlertSystem` with simulated detections.
+  - Provides a standalone example of how to use the `AlertSystem` with simulated multi-object detections.
 
 ### `location.py`
 
@@ -148,7 +151,7 @@ Handles the acquisition of GPS location data on Windows.
 
 ### `send_location.py`
 
-Responsible for sending WhatsApp alerts with location details.
+Responsible for sending WhatsApp alerts with location details and the detected object type.
 
 - **Imports:** `pywhatkit` (as `pwk`), `datetime`, `asyncio`, `sys`, `time`, `pyautogui`.
 - **Windows Location Import:** Includes `winsdk` for location, similar to `location.py`.
@@ -158,9 +161,9 @@ Responsible for sending WhatsApp alerts with location details.
     - Uses `winsdk.windows.devices.geolocation` to get high-accuracy GPS coordinates.
     - Stores latitude and longitude in `self.location`.
     - Prints location details and returns `True` on success, `False` on failure.
-  - **`create_message(self, alert_type="POTHOLE DETECTED")`:**
-    - Formats a detailed WhatsApp message including alert type, current time, detection method, exact coordinates, and a Google Maps link.
-  - **`send_to_multiple_numbers(self, phone_numbers, alert_type="POTHOLE DETECTED")`:**
+  - **`create_message(self, alert_type="DETECTION")`:**
+    - Formats a detailed WhatsApp message including the dynamic `alert_type`, current time, detection method, exact coordinates, and a Google Maps link.
+  - **`send_to_multiple_numbers(self, phone_numbers, alert_type="DETECTION")`:**
     - Iterates through a list of `phone_numbers`.
     - Uses `pwk.sendwhatmsg_instantly()` to open WhatsApp Web and type the message.
     - Includes `time.sleep()` calls to allow WhatsApp Web to load and process.
@@ -169,10 +172,11 @@ Responsible for sending WhatsApp alerts with location details.
     - Returns `True` if at least one message was sent successfully.
 - **`main()` async function:**
   - Sets up UTF-8 encoding for stdout on Windows.
+  - Retrieves `alert_type` from command-line arguments (defaults to "DETECTION").
   - Creates a `LocationWhatsApp` instance.
   - Calls `get_windows_location()` to acquire coordinates.
   - Defines a list of recipient `phone_numbers`.
-  - Calls `send_to_multiple_numbers()` to dispatch the alerts.
+  - Calls `send_to_multiple_numbers()` to dispatch the alerts, passing the `alert_type`.
   - Prints status messages throughout the process.
 - **Execution:** Runs the `main()` async function when the script is executed directly on Windows, exiting with status 0 on success, 1 on failure.
 
@@ -247,7 +251,7 @@ A more comprehensive and version-specific list of dependencies.
 
 ## Usage
 
-To start the pothole detection and alert system, run the `main.py` script:
+To start the multi-object detection and alert system, run the `main.py` script:
 
 ```bash
 python main.py
@@ -256,11 +260,11 @@ python main.py
 The system will:
 
 1.  Initialize the camera and display a live feed.
-2.  Detect potholes in real-time.
-3.  If a pothole is detected with high confidence for a consecutive number of frames (default 3) and after a cooldown period (default 5 seconds), it will trigger an alert.
+2.  Detect various objects in real-time.
+3.  If an object is detected with high confidence for a consecutive number of frames (default 3) and after a cooldown period (default 5 seconds), it will trigger an alert.
 4.  An alert involves:
     - Acquiring the current GPS location.
-    - Sending a detailed WhatsApp message with location and Google Maps link to configured recipients.
+    - Sending a detailed WhatsApp message with the detected object type, location, and Google Maps link to configured recipients.
     - The main detection loop continues while the alert is being sent in the background.
 5.  Press 'Q' on the camera feed window to quit the application.
 

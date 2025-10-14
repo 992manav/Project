@@ -64,7 +64,7 @@ class LocationWhatsApp:
             f"🗺 OPEN IN MAPS:\n"
             f"https://maps.google.com/maps?q={lat},{lon}\n\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"Sent from Pothole Detection System"
+            f"Sent from Detection System"
         )
         return message
     
@@ -100,6 +100,18 @@ class LocationWhatsApp:
             # Allow WhatsApp to load & type message
             time.sleep(3)
             
+            # Try to activate WhatsApp window before pressing Enter
+            whatsapp_windows = pyautogui.getWindowsWithTitle("WhatsApp")
+            if whatsapp_windows:
+                # Assuming the first found window is the correct one
+                whatsapp_window = whatsapp_windows[0]
+                if not whatsapp_window.isActive:
+                    print("Activating WhatsApp window...")
+                    whatsapp_window.activate()
+                time.sleep(1) # Give a moment for the window to activate
+            else:
+                print("WhatsApp window not found. Message might not be sent.")
+
             # Press Enter to actually send
             print("Pressing Enter to send message...")
             pyautogui.press("enter")
@@ -133,8 +145,13 @@ async def main():
         except Exception:
             pass
     
+    # Get alert_type from command line arguments
+    alert_type = "DETECTION"
+    if len(sys.argv) > 1:
+        alert_type = sys.argv[1]
+
     print("=" * 70)
-    print("AUTOMATED POTHOLE ALERT - SENDING NOW")
+    print(f"AUTOMATED {alert_type.upper()} ALERT - SENDING NOW")
     print("=" * 70)
     
     wa = LocationWhatsApp()
@@ -153,9 +170,9 @@ async def main():
         print(f"   - {phone}")
     
     print("\n" + "=" * 70)
-    print("SENDING POTHOLE ALERT")
+    print(f"SENDING {alert_type.upper()} ALERT")
     print("=" * 70)
-    print(f"Alert Type: POTHOLE DETECTED")
+    print(f"Alert Type: {alert_type.upper()}")
     print(f"Location: {wa.location[0]:.6f}, {wa.location[1]:.6f}")
     print(f"Recipients: {len(phone_numbers)} contacts")
     print("=" * 70)
@@ -163,7 +180,7 @@ async def main():
     print("\nSENDING STARTED...\n")
     time.sleep(1)
     
-    success = wa.send_to_multiple_numbers(phone_numbers, "POTHOLE DETECTED")
+    success = wa.send_to_multiple_numbers(phone_numbers, alert_type)
     
     if success:
         print("\n✅ All alerts sent successfully!")
