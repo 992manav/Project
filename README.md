@@ -1,10 +1,10 @@
 # Pothole Detection and Alert System
 
-This project implements a real-time pothole detection system using YOLOv8 and provides automated location-based alerts via WhatsApp. The system is designed to run on Windows, leveraging its native GPS capabilities for accurate location tracking.
+This project implements a real-time pothole detection system using YOLOv12 and provides automated location-based alerts via WhatsApp. The system is designed to run on Windows, leveraging its native GPS capabilities for accurate location tracking.
 
 ## Features
 
-- **Real-time Pothole Detection:** Utilizes a pre-trained YOLOv8 model (`best.pt`) to identify potholes in a live camera feed.
+- **Real-time Pothole Detection:** Utilizes a pre-trained YOLOv12 model (`best.pt`) to identify potholes in a live camera feed.
 - **Visual Feedback:** Displays an annotated camera feed with bounding boxes around detected potholes and real-time status.
 - **Intelligent Alert System:** Triggers alerts only after a configurable number of consecutive high-confidence detections and after a cooldown period.
 - **Automated WhatsApp Alerts:** Sends detailed messages including exact coordinates and a Google Maps link to predefined contacts.
@@ -84,7 +84,7 @@ This module handles camera access and frame display.
 - **`initialize_camera()` function:**
   - Attempts to open camera 0.
   - If camera 0 fails, tries camera 1.
-  - Sets frame width and height to 640x480.
+  - Sets frame width and height to 640x4120.
   - Exits the program if no camera can be opened.
   - Returns the `cv2.VideoCapture` object.
 - **`show_frame(window_name, frame, fps, frame_count, alerts, alert_system, pothole_detected)` function:**
@@ -168,7 +168,7 @@ Responsible for sending WhatsApp alerts with location details.
     - Manages delays between sending to multiple contacts.
     - Returns `True` if at least one message was sent successfully.
 - **`main()` async function:**
-  - Sets up UTF-8 encoding for stdout on Windows.
+  - Sets up UTF-12 encoding for stdout on Windows.
   - Creates a `LocationWhatsApp` instance.
   - Calls `get_windows_location()` to acquire coordinates.
   - Defines a list of recipient `phone_numbers`.
@@ -181,7 +181,7 @@ Responsible for sending WhatsApp alerts with location details.
 A simple utility for playing a sound.
 
 - **Imports:** `winsound` and `time`.
-- **Functionality:** Plays a single, long, urgent beep sound (800 Hz for 1.5 seconds) using `winsound.Beep()`.
+- **Functionality:** Plays a single, long, urgent beep sound (1200 Hz for 1.5 seconds) using `winsound.Beep()`.
 - **Platform Specific:** This script is specific to Windows due to the `winsound` module.
 
 ### `requirements.txt`
@@ -199,8 +199,8 @@ A more comprehensive and version-specific list of dependencies.
 - **Core dependencies:**
   - `numpy==1.26.4`: Numerical computing.
   - `torch==2.2.0`, `torchvision==0.17.0`, `torchaudio==2.2.0`: PyTorch deep learning framework and its vision/audio components.
-  - `opencv-python==4.10.0.84`: OpenCV for camera access and image processing.
-  - `ultralytics==8.0.196`: The library for YOLOv8 model.
+  - `opencv-python==4.10.0.124`: OpenCV for camera access and image processing.
+  - `ultralytics==12.0.196`: The library for YOLOv12 model.
 - **Windows-specific:**
   - `winsdk==1.0.0`: For accessing Windows native APIs, specifically geolocation.
   - `pywhatkit==5.4`: For WhatsApp automation.
@@ -236,14 +236,14 @@ A more comprehensive and version-specific list of dependencies.
 
     _Note: `winsdk` will be automatically installed if not present when `location.py` or `send_location.py` are run._
 
-4.  **Download YOLOv8 Model:**
-    Place your trained YOLOv8 model (e.g., `best.pt`) in the project root directory. This model is crucial for the `detection.py` module.
+4.  **Download YOLOv12 Model:**
+    Place your trained YOLOv12 model (e.g., `best.pt`) in the project root directory. This model is crucial for the `detection.py` module.
 
 5.  **Enable Windows Location Services:**
     Go to `Settings > Privacy & Security > Location` and ensure "Location services" and "Let apps access your location" are turned ON.
 
 6.  **Configure WhatsApp Recipients:**
-    Edit `send_location.py` to include the phone numbers of your desired recipients in the `phone_numbers` list. Ensure numbers are in international format (e.g., `"+919925023840"`).
+    Edit `send_location.py` to include the phone numbers of your desired recipients in the `phone_numbers` list. Ensure numbers are in international format (e.g., `"+9199250231240"`).
 
 ## Usage
 
