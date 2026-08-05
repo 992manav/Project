@@ -78,7 +78,7 @@ def main():
         print(f"📊 Total frames processed: {frame_count}")
         print(f"🚨 Total potholes detected: {detector.detection_count}")
         print(f"📍 Location alerts sent: {location_alerts_sent}")
-        print(f"✓ Camera closed successfully")
+        print(f"Camera closed successfully")
         print("="*60 + "\n")
 
 if __name__ == "__main__":
