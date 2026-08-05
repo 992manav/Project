@@ -1,4 +1,4 @@
-# Pothole Detection and Alert System
+# Pothole Detection and Alert System 
 
 This project implements a real-time pothole detection system using YOLOv12 and provides automated location-based alerts via WhatsApp. The system is designed to run on Windows, leveraging its native GPS capabilities for accurate location tracking.
 
@@ -285,7 +285,7 @@ The system will:
   - Ensure `pip` is up-to-date (`python -m pip install --upgrade pip`).
   - Check for any specific error messages during `pip install -r new_requirements.txt`.
 
-## Future Enhancements
+## Future Enhancements (To Be Done)
 
 - **Cross-platform compatibility:** Extend location services and alert mechanisms to Linux/macOS.
 - **More robust alert mechanisms:** Integrate with other messaging platforms (SMS, email) or custom APIs.
